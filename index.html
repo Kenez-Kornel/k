@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #111;
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            color: #4cff68;
+        }
+
+        #score {
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+
+        canvas {
+            background: #202020;
+            border: 3px solid #4cff68;
+            box-shadow: 0 0 20px rgba(76, 255, 104, 0.2);
+        }
+
+        #message {
+            margin-top: 15px;
+            font-size: 18px;
+            color: #ccc;
+        }
+
+        button {
+            margin-top: 12px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #4cff68;
+            color: #111;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #72ff88;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🐍 Snake</h1>
+
+    <div id="score">Almák: 0 | Hossz: 3</div>
+
+    <canvas id="game" width="600" height="600"></canvas>
+
+    <div id="message">
+        Használd a ⬆️ ⬇️ ⬅️ ➡️ nyilakat!
+    </div>
+
+    <button onclick="restartGame()">Újrakezdés</button>
+
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+
+// Egy egység mérete
+const unit = 20;
+
+// Pálya mérete
+const cols = canvas.width / unit;
+const rows = canvas.height / unit;
+
+
+// Kígyó
+let snake;
+let direction;
+let nextDirection;
+
+// Alma
+let apple;
+
+// Pontszám
+let score;
+
+
+// Játék állapota
+let gameOver = false;
+
+
+// Játék indítása
+function startGame() {
+
+    snake = [
+        { x: 15, y: 15 },
+        { x: 14, y: 15 },
+        { x: 13, y: 15 }
+    ];
+
+    direction = {
+        x: 1,
+        y: 0
+    };
+
+    nextDirection = {
+        x: 1,
+        y: 0
+    };
+
+    score = 0;
+
+    gameOver = false;
+
+    createApple();
+
+    updateScore();
+}
+
+
+// Alma létrehozása
+function createApple() {
+
+    let validPosition = false;
+
+    while (!validPosition) {
+
+        apple = {
+            x: Math.floor(Math.random() * cols),
+            y: Math.floor(Math.random() * rows)
+        };
+
+        validPosition = true;
+
+        // Ne jelenjen meg a kígyó testében
+        for (let part of snake) {
+
+            if (
+                part.x === apple.x &&
+                part.y === apple.y
+            ) {
+                validPosition = false;
+                break;
+            }
+        }
+    }
+}
+
+
+// Billentyűzet kezelése
+document.addEventListener("keydown", function(event) {
+
+    if (event.key === "ArrowUp") {
+
+        if (direction.y !== 1) {
+            nextDirection = { x: 0, y: -1 };
+        }
+
+        event.preventDefault();
+    }
+
+
+    if (event.key === "ArrowDown") {
+
+        if (direction.y !== -1) {
+            nextDirection = { x: 0, y: 1 };
+        }
+
+        event.preventDefault();
+    }
+
+
+    if (event.key === "ArrowLeft") {
+
+        if (direction.x !== 1) {
+            nextDirection = { x: -1, y: 0 };
+        }
+
+        event.preventDefault();
+    }
+
+
+    if (event.key === "ArrowRight") {
+
+        if (direction.x !== -1) {
+            nextDirection = { x: 1, y: 0 };
+        }
+
+        event.preventDefault();
+    }
+
+});
+
+
+// Játék frissítése
+function update() {
+
+    if (gameOver) {
+        return;
+    }
+
+
+    // Új irány
+    direction = nextDirection;
+
+
+    // Új fej
+    const head = {
+        x: snake[0].x + direction.x,
+        y: snake[0].y + direction.y
+    };
+
+
+    // Falnak ütközés
+    if (
+        head.x < 0 ||
+        head.x >= cols ||
+        head.y < 0 ||
+        head.y >= rows
+    ) {
+
+        endGame();
+        return;
+    }
+
+
+    // Saját testnek ütközés
+    for (let i = 0; i < snake.length; i++) {
+
+        if (
+            head.x === snake[i].x &&
+            head.y === snake[i].y
+        ) {
+
+            endGame();
+            return;
+        }
+    }
+
+
+    // Fej hozzáadása
+    snake.unshift(head);
+
+
+    // Alma megevése
+    if (
+        head.x === apple.x &&
+        head.y === apple.y
+    ) {
+
+        score++;
+
+        // A kígyó nem kapja le a farkát,
+        // ezért pontosan 1 egységgel nő
+        createApple();
+
+        updateScore();
+
+    } else {
+
+        // Ha nincs alma, a farok eltűnik
+        snake.pop();
+    }
+}
+
+
+// Rajzolás
+function draw() {
+
+    // Háttér
+    ctx.fillStyle = "#202020";
+    ctx.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    // Rács
+    ctx.strokeStyle = "#292929";
+    ctx.lineWidth = 1;
+
+    for (let x = 0; x <= canvas.width; x += unit) {
+
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+    }
+
+    for (let y = 0; y <= canvas.height; y += unit) {
+
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
+
+
+    // Alma
+    ctx.fillStyle = "#ff3030";
+
+    ctx.fillRect(
+        apple.x * unit,
+        apple.y * unit,
+        unit,
+        unit
+    );
+
+
+    // Alma szára
+    ctx.fillStyle = "#704214";
+
+    ctx.fillRect(
+        apple.x * unit + 8,
+        apple.y * unit - 4,
+        4,
+        5
+    );
+
+
+    // Kígyó
+    snake.forEach((part, index) => {
+
+        if (index === 0) {
+
+            // FEJ
+            ctx.fillStyle = "#5cff70";
+
+        } else {
+
+            // TEST
+            ctx.fillStyle = "#28b83f";
+        }
+
+
+        ctx.fillRect(
+            part.x * unit,
+            part.y * unit,
+            unit,
+            unit
+        );
+
+
+        // Fej szemei
+        if (index === 0) {
+
+            ctx.fillStyle = "white";
+
+            // Szemek helyzete az irány alapján
+            let eye1;
+            let eye2;
+
+
+            if (direction.x === 1) {
+
+                eye1 = { x: 14, y: 5 };
+                eye2 = { x: 14, y: 14 };
+
+            } else if (direction.x === -1) {
+
+                eye1 = { x: 5, y: 5 };
+                eye2 = { x: 5, y: 14 };
+
+            } else if (direction.y === -1) {
+
+                eye1 = { x: 5, y: 5 };
+                eye2 = { x: 14, y: 5 };
+
+            } else {
+
+                eye1 = { x: 5, y: 14 };
+                eye2 = { x: 14, y: 14 };
+            }
+
+
+            ctx.fillRect(
+                part.x * unit + eye1.x,
+                part.y * unit + eye1.y,
+                4,
+                4
+            );
+
+            ctx.fillRect(
+                part.x * unit + eye2.x,
+                part.y * unit + eye2.y,
+                4,
+                4
+            );
+        }
+    });
+
+
+    // Game Over felirat
+    if (gameOver) {
+
+        ctx.fillStyle = "rgba(0,0,0,0.65)";
+        ctx.fillRect(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+
+        ctx.fillStyle = "white";
+        ctx.font = "bold 45px Arial";
+        ctx.textAlign = "center";
+
+        ctx.fillText(
+            "GAME OVER",
+            canvas.width / 2,
+            canvas.height / 2
+        );
+
+
+        ctx.font = "22px Arial";
+
+        ctx.fillText(
+            "Nyomd meg az Újrakezdés gombot!",
+            canvas.width / 2,
+            canvas.height / 2 + 45
+        );
+    }
+}
+
+
+// Pontszám frissítése
+function updateScore() {
+
+    document.getElementById("score").textContent =
+        "Almák: " + score +
+        " | Hossz: " + snake.length;
+}
+
+
+// Game Over
+function endGame() {
+
+    gameOver = true;
+
+    document.getElementById("message").textContent =
+        "Vége a játéknak!";
+}
+
+
+// Újrakezdés
+function restartGame() {
+
+    startGame();
+}
+
+
+// Játék ciklus
+function gameLoop() {
+
+    update();
+    draw();
+}
+
+
+// Játék elindítása
+startGame();
+
+
+// 120 ms-onként mozog a kígyó
+setInterval(gameLoop, 120);
+
+</script>
+
+</body>
+</html>
